@@ -34,7 +34,7 @@ jobs:
 
       - name: Build (Release) and Publish
         run: |  
-          cd PDDLSharp
+          cd CSVToolsSharp
           dotnet nuget add source --username kris701 --password ${{ secrets.API_KEY_GITHUB }} --store-password-in-clear-text --name github "https://nuget.pkg.github.com/kris701/index.json"
           dotnet build --configuration Release
           dotnet pack --configuration Release
