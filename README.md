@@ -12,4 +12,5 @@
 ![Static Badge](https://img.shields.io/badge/Platform-Linux-blue)
 ![Static Badge](https://img.shields.io/badge/Framework-dotnet--8.0-green)
 
-CSV Tools Sharp
+CSV Tools Sharp is a little project to manipulate and output CSV files.
+You can find it on the [NuGet Package Manager](https://www.nuget.org/packages/CSVToolsSharp/) or the [GitHub Package Manager](https://github.com/kris701/CSVToolsSharp/pkgs/nuget/CSVToolsSharp).
