@@ -19,11 +19,11 @@
 	</PropertyGroup>
 
 	<PropertyGroup>
-		<PackageIcon>../logo.png</PackageIcon>
+		<PackageIcon>logo.png</PackageIcon>
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="../logo.png" Pack="true" PackagePath="" />
+		<None Include="logo.png" Pack="true" PackagePath="" />
 	</ItemGroup>
 
 	<ItemGroup>
