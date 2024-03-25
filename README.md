@@ -14,3 +14,22 @@
 
 CSV Tools Sharp is a little project to manipulate and output CSV files.
 You can find it on the [NuGet Package Manager](https://www.nuget.org/packages/CSVToolsSharp/) or the [GitHub Package Manager](https://github.com/kris701/CSVToolsSharp/pkgs/nuget/CSVToolsSharp).
+
+# How to Use
+The package is inspired by that of [System.Text.Json](https://www.nuget.org/packages/System.Text.Json/9.0.0-preview.2.24128.5), where you can access two primary static methods, `CSVSerialiser.Deserialise` and `CSVSerialiser.Serialise` to convert generic classes into CSV format and back.
+You have to give the properties of the CSV serialisable classes a `CSVColumn` attribute for them to be targeted for serialisation.
+
+## Example
+Class to serialise/deserialize:
+```csharp
+public class TestClass
+{
+    [CSVColumn("Column1")]
+    public string Value { get; set; }
+}
+```
+You can then use the serialiser and deserialiser as follows:
+```csharp
+var csvText = CSVSerialiser.Serialise(new List<TestClass>(){ new TestClass(){ ... } });
+var data = CSVSerialiser.Deserialise<TestClass>(csvText);
+```
