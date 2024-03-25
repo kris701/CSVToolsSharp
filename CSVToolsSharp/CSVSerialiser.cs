@@ -8,8 +8,19 @@ using System.Threading.Tasks;
 
 namespace CSVToolsSharp
 {
+    /// <summary>
+    /// Overall class to serialise and deserialise data into CSV format
+    /// </summary>
     public static class CSVSerialiser
     {
+        #region 
+        /// <summary>
+        /// Serialise a list of <typeparamref name="T"/> into a CSV string.
+        /// </summary>
+        /// <typeparam name="T">A class that has some <seealso cref="CSVColumnAttribute"/> attributes</typeparam>
+        /// <param name="data">List of data</param>
+        /// <returns>A string in CSV format</returns>
+        /// <exception cref="CSVSerialiserException"></exception>
         public static string Serialise<T>(List<T> data) where T : new()
         {
             var type = typeof(T);
@@ -17,16 +28,26 @@ namespace CSVToolsSharp
             {
                 if (data.Count == 0)
                     throw new CSVSerialiserException("Cannot serialise a 'object' type list with zero values! Type cannot be infered.");
-                var subType = data[0].GetType();
-                return Serialise(subType, data.Cast<dynamic>().ToList());
+                var target = data[0];
+                if (target == null)
+                    throw new CSVSerialiserException("First item in data list was null!");
+                return Serialise(target.GetType(), data.Cast<dynamic>().ToList());
             }
 
             return Serialise(typeof(T), data.Cast<dynamic>().ToList());
         }
+
+        /// <summary>
+        /// Serialise a list of <paramref name="type"/> into a CSV string.
+        /// </summary>
+        /// <param name="type">A class that has some <seealso cref="CSVColumnAttribute"/> attributes</param>
+        /// <param name="data">List of data</param>
+        /// <returns>A string in CSV format</returns>
+        /// <exception cref="CSVSerialiserException"></exception>
         public static string Serialise(Type type, List<dynamic> data)
         {
             if (!type.GetConstructors().Any(x => x.GetParameters().Length == 0))
-                throw new CSVDeserialiserException($"Type '{type.Name}' does not contain an empty constructor!");
+                throw new CSVSerialiserException($"Type '{type.Name}' does not contain an empty constructor!");
 
             var sb = new StringBuilder();
             var propInfo = type.GetProperties();
@@ -53,11 +74,24 @@ namespace CSVToolsSharp
 
             return sb.ToString();
         }
+        #endregion
 
-        public static List<T> Deserialise<T>(string text) where T : new()
-        {
-            return Deserialise(typeof(T), text).Cast<T>().ToList();
-        }
+        #region
+        /// <summary>
+        /// Deserialise a CSV string into a list of <typeparamref name="T"/>.
+        /// </summary>
+        /// <typeparam name="T">A class that has some <seealso cref="CSVColumnAttribute"/> attributes</typeparam>
+        /// <param name="text">A string in CSV format</param>
+        /// <returns>List of data</returns>
+        /// <exception cref="CSVDeserialiserException"></exception>
+        public static List<T> Deserialise<T>(string text) where T : new() => Deserialise(typeof(T), text).Cast<T>().ToList();
+        /// <summary>
+        /// Deserialise a CSV string into a list of <paramref name="type"/>.
+        /// </summary>
+        /// <param name="type">A class that has some <seealso cref="CSVColumnAttribute"/> attributes</param>
+        /// <param name="text">A string in CSV format</param>
+        /// <returns>List of data</returns>
+        /// <exception cref="CSVDeserialiserException"></exception>
         public static List<dynamic> Deserialise(Type type, string text)
         {
             if (!type.GetConstructors().Any(x => x.GetParameters().Length == 0))
@@ -82,6 +116,8 @@ namespace CSVToolsSharp
                 var line = split[i].Split(',').ToList();
                 line.RemoveAll(x => x == "");
                 var newItem = Activator.CreateInstance(type);
+                if (newItem == null)
+                    throw new CSVDeserialiserException($"New instance of type '{type.Name}' was null!");
                 for (int j = 0; j < line.Count; j++)
                     columnProps[j].SetValue(newItem, Convert.ChangeType(line[j], columnProps[j].PropertyType));
                 retList.Add(newItem);
@@ -89,6 +125,7 @@ namespace CSVToolsSharp
 
             return retList;
         }
+        #endregion
 
         private static List<PropertyInfo> GetColumnProperties(Type type)
         {

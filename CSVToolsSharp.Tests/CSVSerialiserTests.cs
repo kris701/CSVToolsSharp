@@ -63,7 +63,7 @@ namespace CSVToolsSharp.Tests
 
         [TestMethod]
         [DynamicData(nameof(Data), DynamicDataSourceType.Method)]
-        public void Can_Serialise(List<dynamic> deserialised, string serialised, Type type)
+        public void Can_Serialise_1(List<dynamic> deserialised, string serialised, Type type)
         {
             // ARRANGE
             // ACT
@@ -71,6 +71,18 @@ namespace CSVToolsSharp.Tests
 
             // ASSERT
             Assert.AreEqual(serialised,text);
+        }
+
+        [TestMethod]
+        [DynamicData(nameof(Data), DynamicDataSourceType.Method)]
+        public void Can_Serialise_2(List<dynamic> deserialised, string serialised, Type type)
+        {
+            // ARRANGE
+            // ACT
+            var text = CSVSerialiser.Serialise(type, deserialised);
+
+            // ASSERT
+            Assert.AreEqual(serialised, text);
         }
 
         [TestMethod]
