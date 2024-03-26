@@ -1,6 +1,7 @@
 ﻿using CSVToolsSharp.Exceptions;
 using System.Reflection;
 using System.Text;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CSVToolsSharp
 {
@@ -15,9 +16,10 @@ namespace CSVToolsSharp
         /// </summary>
         /// <typeparam name="T">A class that has some <seealso cref="CSVColumnAttribute"/> attributes</typeparam>
         /// <param name="data">List of data</param>
+        /// <param name="options">Settings for the serialisation</param>
         /// <returns>A string in CSV format</returns>
         /// <exception cref="CSVSerialiserException"></exception>
-        public static string Serialise<T>(List<T> data) where T : new()
+        public static string Serialise<T>(List<T> data, CSVSerialiserOptions? options = null) where T : new()
         {
             var type = typeof(T);
             if (type.Name.ToLower() == "object")
@@ -27,10 +29,10 @@ namespace CSVToolsSharp
                 var target = data[0];
                 if (target == null)
                     throw new CSVSerialiserException("First item in data list was null!");
-                return Serialise(target.GetType(), data.Cast<dynamic>().ToList());
+                return Serialise(data.Cast<dynamic>().ToList(), target.GetType(), options);
             }
 
-            return Serialise(typeof(T), data.Cast<dynamic>().ToList());
+            return Serialise(data.Cast<dynamic>().ToList(), typeof(T), options);
         }
 
         /// <summary>
@@ -38,37 +40,67 @@ namespace CSVToolsSharp
         /// </summary>
         /// <param name="type">A class that has some <seealso cref="CSVColumnAttribute"/> attributes</param>
         /// <param name="data">List of data</param>
+        /// <param name="options">Settings for the serialisation</param>
         /// <returns>A string in CSV format</returns>
         /// <exception cref="CSVSerialiserException"></exception>
-        public static string Serialise(Type type, List<dynamic> data)
+        public static string Serialise(List<dynamic> data, Type type, CSVSerialiserOptions? options = null)
         {
             if (!type.GetConstructors().Any(x => x.GetParameters().Length == 0))
                 throw new CSVSerialiserException($"Type '{type.Name}' does not contain an empty constructor!");
 
-            var sb = new StringBuilder();
             var propInfo = type.GetProperties();
             var columnProps = GetColumnProperties(type);
             if (columnProps.Count == 0)
                 throw new CSVSerialiserException($"Class '{type.Name}' does not have any {nameof(CSVColumnAttribute)} attributes!");
 
+            if (options != null && options.PrettyOutput == true)
+                return SerializePretty(data, columnProps);
+            return SerializeNormal(data, columnProps, Enumerable.Repeat(0, columnProps.Count).ToList());
+        }
+
+        private static string SerializeNormal(List<dynamic> data, List<PropertyInfo> columnProps, List<int> spacings)
+        {
+            var sb = new StringBuilder();
             var headerStr = "";
-            foreach (var col in columnProps)
+            for(int i = 0; i < columnProps.Count; i++)
             {
-                var attr = col.GetCustomAttribute<CSVColumnAttribute>();
+                var attr = columnProps[i].GetCustomAttribute<CSVColumnAttribute>();
                 if (attr != null)
-                    headerStr += $"{attr.Name},";
+                    headerStr += $"{attr.Name}".PadRight(spacings[i]) + ",";
             }
             sb.AppendLine(RemoveTrailingComma(headerStr));
 
             foreach (var item in data)
             {
                 var itemStr = "";
-                foreach (var col in columnProps)
-                    itemStr += $"{col.GetValue(item)},";
+                for (int i = 0; i < columnProps.Count; i++)
+                    itemStr += $"{columnProps[i].GetValue(item)}".PadRight(spacings[i]) + ",";
                 sb.AppendLine(RemoveTrailingComma(itemStr));
             }
 
             return sb.ToString();
+        }
+
+        private static string SerializePretty(List<dynamic> data, List<PropertyInfo> columnProps)
+        {
+            var spacings = new List<int>();
+            foreach (var col in columnProps)
+            {
+                var attr = col.GetCustomAttribute<CSVColumnAttribute>();
+                if (attr != null)
+                    spacings.Add(attr.Name.Length);
+            }
+
+            foreach (var item in data)
+            {
+                for (int i = 0; i < columnProps.Count; i++)
+                {
+                    var str = $"{columnProps[i].GetValue(item)}";
+                    if (str.Length > spacings[i])
+                        spacings[i] = str.Length;
+                }
+            }
+            return SerializeNormal(data, columnProps, spacings);
         }
         #endregion
 
@@ -78,17 +110,19 @@ namespace CSVToolsSharp
         /// </summary>
         /// <typeparam name="T">A class that has some <seealso cref="CSVColumnAttribute"/> attributes</typeparam>
         /// <param name="text">A string in CSV format</param>
+        /// <param name="options">Settings for the deserialisation</param>
         /// <returns>List of data</returns>
         /// <exception cref="CSVDeserialiserException"></exception>
-        public static List<T> Deserialise<T>(string text) where T : new() => Deserialise(typeof(T), text).Cast<T>().ToList();
+        public static List<T> Deserialise<T>(string text, CSVSerialiserOptions? options = null) where T : new() => Deserialise(text, typeof(T), options).Cast<T>().ToList();
         /// <summary>
         /// Deserialise a CSV string into a list of <paramref name="type"/>.
         /// </summary>
         /// <param name="type">A class that has some <seealso cref="CSVColumnAttribute"/> attributes</param>
         /// <param name="text">A string in CSV format</param>
+        /// <param name="options">Settings for the deserialisation</param>
         /// <returns>List of data</returns>
         /// <exception cref="CSVDeserialiserException"></exception>
-        public static List<dynamic> Deserialise(Type type, string text)
+        public static List<dynamic> Deserialise(string text, Type type, CSVSerialiserOptions? options = null)
         {
             if (!type.GetConstructors().Any(x => x.GetParameters().Length == 0))
                 throw new CSVDeserialiserException($"Type '{type.Name}' does not contain an empty constructor!");
@@ -114,8 +148,14 @@ namespace CSVToolsSharp
                 var newItem = Activator.CreateInstance(type);
                 if (newItem == null)
                     throw new CSVDeserialiserException($"New instance of type '{type.Name}' was null!");
+                if (line.Count != columnProps.Count)
+                    throw new CSVDeserialiserException($"Line {i} should have {columnProps.Count} fields but it had {line.Count}");
                 for (int j = 0; j < line.Count; j++)
-                    columnProps[j].SetValue(newItem, Convert.ChangeType(line[j], columnProps[j].PropertyType));
+                {
+                    var targetProp = columnProps.First(x => x.GetCustomAttribute<CSVColumnAttribute>()?.Name == cols[j].Trim());
+                    if (targetProp != null)
+                        targetProp.SetValue(newItem, Convert.ChangeType(line[j].Trim(), targetProp.PropertyType));
+                }
                 retList.Add(newItem);
             }
 

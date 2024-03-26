@@ -18,6 +18,7 @@ You can find it on the [NuGet Package Manager](https://www.nuget.org/packages/CS
 # How to Use
 The package is inspired by that of [System.Text.Json](https://www.nuget.org/packages/System.Text.Json/9.0.0-preview.2.24128.5), where you can access two primary static methods, `CSVSerialiser.Deserialise` and `CSVSerialiser.Serialise` to convert generic classes into CSV format and back.
 You have to give the properties of the CSV serialisable classes a `CSVColumn` attribute for them to be targeted for serialisation.
+You can also pass a `CSVSerialiserOptions` object to the serialisation/deserialisation for more settings.
 
 ## Example
 Class to serialise/deserialize:
@@ -30,6 +31,34 @@ public class TestClass
 ```
 You can then use the serialiser and deserialiser as follows:
 ```csharp
-var csvText = CSVSerialiser.Serialise(new List<TestClass>(){ new TestClass(){ ... } });
-var data = CSVSerialiser.Deserialise<TestClass>(csvText);
+var csvText = CSVSerialiser.Serialise(new List<TestClass>(){ new TestClass(){ Value = "abc" } });
+```
+Gives
+```csv
+Column1
+abc
+```
+
+## Example
+Class to serialise/deserialize:
+```csharp
+public class TestClass2
+{
+    [CSVColumn("Column1")]
+    public string Value { get; set; }
+    [CSVColumn("Column 2")]
+    public string Value2 { get; set; }
+}
+```
+You can also make the CSV print more readably:
+```csharp
+var csvText = CSVSerialiser.Serialise(
+    new List<TestClass2>(){ 
+        new TestClass2(){ Value = "asdafaseasasd", Value2 = "abc" } 
+    }, new CSVSerialiserOptions(){ PrettyOutput = true });
+```
+Gives
+```csv
+Column1      ,Column 2
+asdafaseasasd,abc
 ```

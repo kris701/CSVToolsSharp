@@ -5,7 +5,7 @@ namespace CSVToolsSharp.Tests
     [TestClass]
     public class CSVSerialiserTests
     {
-        public static IEnumerable<object[]> Data()
+        public static IEnumerable<object[]> NormalData()
         {
             yield return new object[] {
                 new List<dynamic>
@@ -13,7 +13,35 @@ namespace CSVToolsSharp.Tests
                     new Simple1("test1")
                 },
                 $"Column1{Environment.NewLine}test1{Environment.NewLine}",
-                typeof(Simple1)
+                typeof(Simple1),
+                null
+            };
+            yield return new object[] {
+                new List<dynamic>
+                {
+                    new Simple1("test1")
+                },
+                $"Column1{Environment.NewLine}test1  {Environment.NewLine}",
+                typeof(Simple1),
+                new CSVSerialiserOptions(){ PrettyOutput = true }
+            };
+            yield return new object[] {
+                new List<dynamic>
+                {
+                    new Simple1("test1test1test1")
+                },
+                $"Column1        {Environment.NewLine}test1test1test1{Environment.NewLine}",
+                typeof(Simple1),
+                new CSVSerialiserOptions(){ PrettyOutput = true }
+            };
+            yield return new object[] {
+                new List<dynamic>
+                {
+                    new Simple1("test1")
+                },
+                $"Column1{Environment.NewLine}test1  {Environment.NewLine}",
+                typeof(Simple1),
+                new CSVSerialiserOptions(){ PrettyOutput = true }
             };
             yield return new object[] {
                 new List<dynamic>
@@ -22,7 +50,8 @@ namespace CSVToolsSharp.Tests
                     new Simple1("test2")
                 },
                 $"Column1{Environment.NewLine}test1{Environment.NewLine}test2{Environment.NewLine}",
-                typeof(Simple1)
+                typeof(Simple1),
+                null
             };
             yield return new object[]
             {
@@ -31,17 +60,19 @@ namespace CSVToolsSharp.Tests
                     new Simple2("test1", 1.5, DateTime.MinValue)
                 },
                 $"Column1,other Column 2,other Column 3{Environment.NewLine}test1,1.5,{DateTime.MinValue}{Environment.NewLine}",
-                typeof(Simple2)
+                typeof(Simple2),
+                null
             };
             yield return new object[]
 {
                 new List<dynamic>()
                 {
                     new Simple2("test1", 1.5, DateTime.MinValue),
-                    new Simple2("wwe   ", 6429593, DateTime.MinValue.AddDays(1))
+                    new Simple2("wwe   a", 6429593, DateTime.MinValue.AddDays(1))
                 },
-                $"Column1,other Column 2,other Column 3{Environment.NewLine}test1,1.5,{DateTime.MinValue}{Environment.NewLine}wwe   ,6429593,{DateTime.MinValue.AddDays(1)}{Environment.NewLine}",
-                typeof(Simple2)
+                $"Column1,other Column 2,other Column 3{Environment.NewLine}test1,1.5,{DateTime.MinValue}{Environment.NewLine}wwe   a,6429593,{DateTime.MinValue.AddDays(1)}{Environment.NewLine}",
+                typeof(Simple2),
+                null
             };
             yield return new object[] {
                 new List<dynamic>
@@ -49,41 +80,42 @@ namespace CSVToolsSharp.Tests
                     new Simple3("test1")
                 },
                 $"Visible{Environment.NewLine}test1{Environment.NewLine}",
-                typeof(Simple3)
+                typeof(Simple3),
+                null
             };
         }
 
         [TestMethod]
-        [DynamicData(nameof(Data), DynamicDataSourceType.Method)]
-        public void Can_Serialise_1(List<dynamic> deserialised, string serialised, Type type)
+        [DynamicData(nameof(NormalData), DynamicDataSourceType.Method)]
+        public void Can_Serialise_1(List<dynamic> deserialised, string serialised, Type type, CSVSerialiserOptions options)
         {
             // ARRANGE
             // ACT
-            var text = CSVSerialiser.Serialise(deserialised);
+            var text = CSVSerialiser.Serialise(deserialised, options);
 
             // ASSERT
             Assert.AreEqual(serialised, text);
         }
 
         [TestMethod]
-        [DynamicData(nameof(Data), DynamicDataSourceType.Method)]
-        public void Can_Serialise_2(List<dynamic> deserialised, string serialised, Type type)
+        [DynamicData(nameof(NormalData), DynamicDataSourceType.Method)]
+        public void Can_Serialise_2(List<dynamic> deserialised, string serialised, Type type, CSVSerialiserOptions options)
         {
             // ARRANGE
             // ACT
-            var text = CSVSerialiser.Serialise(type, deserialised);
+            var text = CSVSerialiser.Serialise(deserialised, type, options);
 
             // ASSERT
             Assert.AreEqual(serialised, text);
         }
 
         [TestMethod]
-        [DynamicData(nameof(Data), DynamicDataSourceType.Method)]
-        public void Can_Deserialise(List<dynamic> deserialised, string serialised, Type type)
+        [DynamicData(nameof(NormalData), DynamicDataSourceType.Method)]
+        public void Can_Deserialise(List<dynamic> deserialised, string serialised, Type type, CSVSerialiserOptions options)
         {
             // ARRANGE
             // ACT
-            var result = CSVSerialiser.Deserialise(type, serialised);
+            var result = CSVSerialiser.Deserialise(serialised, type, options);
 
             // ASSERT
             Assert.IsInstanceOfType(result[0], type);
@@ -91,13 +123,13 @@ namespace CSVToolsSharp.Tests
         }
 
         [TestMethod]
-        [DynamicData(nameof(Data), DynamicDataSourceType.Method)]
-        public void Can_Deserialise_BackAndForth(List<dynamic> deserialised, string serialised, Type type)
+        [DynamicData(nameof(NormalData), DynamicDataSourceType.Method)]
+        public void Can_Deserialise_BackAndForth(List<dynamic> deserialised, string serialised, Type type, CSVSerialiserOptions options)
         {
             // ARRANGE
             // ACT
-            var des = CSVSerialiser.Deserialise(type, serialised);
-            var ser = CSVSerialiser.Serialise(type, des);
+            var des = CSVSerialiser.Deserialise(serialised, type, options);
+            var ser = CSVSerialiser.Serialise(des, type, options);
 
             // ASSERT
             Assert.IsInstanceOfType(des[0], type);
@@ -105,10 +137,12 @@ namespace CSVToolsSharp.Tests
             Assert.AreEqual(serialised, ser);
         }
 
-        private bool AreEqual<T>(List<T> one, List<T> other)
+        private bool AreEqual<T>(List<T> one, List<T> other) where T : notnull
         {
-            foreach (var item in one)
-                if (!other.Contains(item))
+            if (one.Count != other.Count)
+                return false;
+            for(int i = 0; i < one.Count; i++)
+                if (!one[i].Equals(other[i]))
                     return false;
             return true;
         }
