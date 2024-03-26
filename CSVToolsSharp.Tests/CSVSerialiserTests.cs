@@ -1,12 +1,4 @@
 ﻿using CSVToolsSharp.Tests.TestClasses;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Resources;
-using System.Text;
-using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CSVToolsSharp.Tests
 {
@@ -70,7 +62,7 @@ namespace CSVToolsSharp.Tests
             var text = CSVSerialiser.Serialise(deserialised);
 
             // ASSERT
-            Assert.AreEqual(serialised,text);
+            Assert.AreEqual(serialised, text);
         }
 
         [TestMethod]
