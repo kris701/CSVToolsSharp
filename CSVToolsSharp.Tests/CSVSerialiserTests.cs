@@ -67,6 +67,16 @@ namespace CSVToolsSharp.Tests
 {
                 new List<dynamic>()
                 {
+                    new Simple2("test1", 1.5, DateTime.MinValue)
+                },
+                $"Column1;other Column 2;other Column 3{Environment.NewLine}test1;1.5;{DateTime.MinValue}{Environment.NewLine}",
+                typeof(Simple2),
+                new CSVSerialiserOptions() { Seperator = ';' }
+            };
+            yield return new object[]
+{
+                new List<dynamic>()
+                {
                     new Simple2("test1", 1.5, DateTime.MinValue),
                     new Simple2("wwe   a", 6429593, DateTime.MinValue.AddDays(1))
                 },

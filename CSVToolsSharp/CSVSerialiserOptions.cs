@@ -15,5 +15,10 @@ namespace CSVToolsSharp
         /// If it should try and serialise nicely
         /// </summary>
         public bool PrettyOutput { get; set; } = false;
+
+        /// <summary>
+        /// What seperator to expect
+        /// </summary>
+        public char Seperator { get; set; } = ',';
     }
 }

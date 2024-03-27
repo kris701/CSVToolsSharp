@@ -45,6 +45,9 @@ namespace CSVToolsSharp
         /// <exception cref="CSVSerialiserException"></exception>
         public static string Serialise(List<dynamic> data, Type type, CSVSerialiserOptions? options = null)
         {
+            if (options == null)
+                options = new CSVSerialiserOptions();
+
             if (!type.GetConstructors().Any(x => x.GetParameters().Length == 0))
                 throw new CSVSerialiserException($"Type '{type.Name}' does not contain an empty constructor!");
 
@@ -53,12 +56,12 @@ namespace CSVToolsSharp
             if (columnProps.Count == 0)
                 throw new CSVSerialiserException($"Class '{type.Name}' does not have any {nameof(CSVColumnAttribute)} attributes!");
 
-            if (options != null && options.PrettyOutput == true)
-                return SerializePretty(data, columnProps);
-            return SerializeNormal(data, columnProps, Enumerable.Repeat(0, columnProps.Count).ToList());
+            if (options.PrettyOutput == true)
+                return SerializePretty(data, columnProps, options);
+            return SerializeNormal(data, columnProps, Enumerable.Repeat(0, columnProps.Count).ToList(), options);
         }
 
-        private static string SerializeNormal(List<dynamic> data, List<PropertyInfo> columnProps, List<int> spacings)
+        private static string SerializeNormal(List<dynamic> data, List<PropertyInfo> columnProps, List<int> spacings, CSVSerialiserOptions options)
         {
             var sb = new StringBuilder();
             var headerStr = "";
@@ -66,22 +69,22 @@ namespace CSVToolsSharp
             {
                 var attr = columnProps[i].GetCustomAttribute<CSVColumnAttribute>();
                 if (attr != null)
-                    headerStr += $"{attr.Name}".PadRight(spacings[i]) + ",";
+                    headerStr += $"{attr.Name}".PadRight(spacings[i]) + options.Seperator;
             }
-            sb.AppendLine(RemoveTrailingComma(headerStr));
+            sb.AppendLine(RemoveTrailingSeperator(headerStr, options.Seperator));
 
             foreach (var item in data)
             {
                 var itemStr = "";
                 for (int i = 0; i < columnProps.Count; i++)
-                    itemStr += $"{columnProps[i].GetValue(item)}".PadRight(spacings[i]) + ",";
-                sb.AppendLine(RemoveTrailingComma(itemStr));
+                    itemStr += $"{columnProps[i].GetValue(item)}".PadRight(spacings[i]) + options.Seperator;
+                sb.AppendLine(RemoveTrailingSeperator(itemStr, options.Seperator));
             }
 
             return sb.ToString();
         }
 
-        private static string SerializePretty(List<dynamic> data, List<PropertyInfo> columnProps)
+        private static string SerializePretty(List<dynamic> data, List<PropertyInfo> columnProps, CSVSerialiserOptions options)
         {
             var spacings = new List<int>();
             foreach (var col in columnProps)
@@ -100,7 +103,7 @@ namespace CSVToolsSharp
                         spacings[i] = str.Length;
                 }
             }
-            return SerializeNormal(data, columnProps, spacings);
+            return SerializeNormal(data, columnProps, spacings, options);
         }
         #endregion
 
@@ -124,6 +127,9 @@ namespace CSVToolsSharp
         /// <exception cref="CSVDeserialiserException"></exception>
         public static List<dynamic> Deserialise(string text, Type type, CSVSerialiserOptions? options = null)
         {
+            if (options == null)
+                options = new CSVSerialiserOptions();
+
             if (!type.GetConstructors().Any(x => x.GetParameters().Length == 0))
                 throw new CSVDeserialiserException($"Type '{type.Name}' does not contain an empty constructor!");
             text = text.Replace("\r", "");
@@ -136,14 +142,14 @@ namespace CSVToolsSharp
             split.RemoveAll(x => x == "");
             if (split.Count == 0)
                 return new List<dynamic>();
-            var cols = split[0].Split(',').ToList();
+            var cols = split[0].Split(options.Seperator).ToList();
             cols.RemoveAll(x => x == "");
             if (cols.Count != columnProps.Count)
                 throw new CSVDeserialiserException($"{type.Name} column count does not match the given text to deserialise!");
 
             for (int i = 1; i < split.Count; i++)
             {
-                var line = split[i].Split(',').ToList();
+                var line = split[i].Split(options.Seperator).ToList();
                 line.RemoveAll(x => x == "");
                 var newItem = Activator.CreateInstance(type);
                 if (newItem == null)
@@ -176,9 +182,9 @@ namespace CSVToolsSharp
             return columnProps;
         }
 
-        private static string RemoveTrailingComma(string text)
+        private static string RemoveTrailingSeperator(string text, char seperator)
         {
-            if (text.EndsWith(','))
+            if (text.EndsWith(seperator))
                 text = text.Substring(0, text.Length - 1);
             return text;
         }
