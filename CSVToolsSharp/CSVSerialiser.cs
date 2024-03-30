@@ -12,7 +12,13 @@ namespace CSVToolsSharp
     {
         #region Dynamic CSV
 
-        public static string DynamicSerialise(DynamicCSV data, CSVSerialiserOptions? options = null)
+        /// <summary>
+        /// Serialise a <seealso cref="DynamicCSV"/> object to CSV format
+        /// </summary>
+        /// <param name="data">A dynamic CSV object</param>
+        /// <param name="options">Settings for the serialisation</param>
+        /// <returns>A string in CSV format</returns>
+        public static string Serialise(DynamicCSV data, CSVSerialiserOptions? options = null)
         {
             if (options == null)
                 options = new CSVSerialiserOptions();
@@ -30,7 +36,13 @@ namespace CSVToolsSharp
             return sb.ToString();
         }
 
-        public static DynamicCSV DynamicDeserialise(string text, CSVSerialiserOptions? options = null)
+        /// <summary>
+        /// Deserialise a CSV string into a <seealso cref="DynamicCSV"/> object.
+        /// </summary>
+        /// <param name="text">A string in CSV format</param>
+        /// <param name="options">Settings for the deserialisation</param>
+        /// <returns>A new instance of a <seealso cref="DynamicCSV"/> object</returns>
+        public static DynamicCSV Deserialise(string text, CSVSerialiserOptions? options = null)
         {
             if (options == null)
                 options = new CSVSerialiserOptions();

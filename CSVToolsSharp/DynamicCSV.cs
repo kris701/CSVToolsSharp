@@ -6,21 +6,63 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using System.Dynamic;
+using CSVToolsSharp.Exceptions;
 
 namespace CSVToolsSharp
 {
+    /// <summary>
+    /// A class representing a dynamic CSV document
+    /// </summary>
     public class DynamicCSV
     {
+        /// <summary>
+        /// Amount of columns in the CSV object
+        /// </summary>
         public int Columns => _data.Keys.Count;
+        /// <summary>
+        /// Amount of rows in the CSV object
+        /// </summary>
         public int Rows => _data.Keys.Max(x => _data[x].Count);
         internal Dictionary<string, List<string>> _data;
 
+        /// <summary>
+        /// A class representing a dynamic CSV document
+        /// </summary>
+        /// <param name="data">Initial dynamic data.</param>
         public DynamicCSV(Dictionary<string, List<string>> data)
         {
             _data = data;
+            BufferRows();
         }
 
-        public void Insert(string column, int row, string data)
+        private void BufferRows()
+        {
+            foreach (var key in _data.Keys)
+                while (_data[key].Count < Rows)
+                    _data[key].Add("");
+        }
+
+        /// <summary>
+        /// Get data from a specific cell
+        /// </summary>
+        /// <param name="column">Name of the column</param>
+        /// <param name="row">Index of the row</param>
+        /// <returns>Data in the cell</returns>
+        /// <exception cref="DynamicCSVException"></exception>
+        public string GetCell(string column, int row)
+        {
+            if (!_data.ContainsKey(column))
+                throw new DynamicCSVException($"Attempted to get data from a non-existent column: '{column}'! Object has the following columns: {GetAllColumnNames()}");
+            if (row > Rows)
+                throw new DynamicCSVException($"Row value must be within row count! Attempted to get data fror row {row} but the CSV document only has {Rows} rows.");
+            return _data[column][row];
+        }
+
+        /// <summary>
+        /// Adds an empty column to the CSV object
+        /// </summary>
+        /// <param name="column">Name of the column</param>
+        public void AddColumn(string column)
         {
             if (!_data.ContainsKey(column))
             {
@@ -28,23 +70,67 @@ namespace CSVToolsSharp
                 while (_data[column].Count < Rows)
                     _data[column].Add("");
             }
+        }
+
+        /// <summary>
+        /// Inserts a new piece of data into the CSV object
+        /// </summary>
+        /// <param name="column">Column to insert data into</param>
+        /// <param name="row">Row to insert data into</param>
+        /// <param name="data">Data to insert</param>
+        public void Insert(string column, int row, string data)
+        {
+            if (!_data.ContainsKey(column))
+                AddColumn(column);
             if (row >= Rows)
-            {
-                foreach(var key in  _data.Keys)
-                    while (_data[key].Count < Rows)
-                        _data[key].Add("");
-            }
+                BufferRows();
             _data[column][row] = data;
         }
 
-        public void RemoveColumn(string column) => _data.Remove(column);
+        /// <summary>
+        /// Remove a given column from the CSV document
+        /// </summary>
+        /// <param name="column">Name of the column</param>
+        /// <exception cref="DynamicCSVException"></exception>
+        public void RemoveColumn(string column)
+        {
+            if (!_data.ContainsKey(column))
+                throw new DynamicCSVException($"Attempted to remove a non-existent column: '{column}'! Object has the following columns: {GetAllColumnNames()}");
+            _data.Remove(column);
+        }
 
+        private string GetAllColumnNames()
+        {
+            var columns = "";
+            foreach (var col in _data.Keys)
+                columns += $"{col}, ";
+            return columns;
+        }
+
+        /// <summary>
+        /// Remove a row from the CSV object
+        /// </summary>
+        /// <param name="row">Index of the row</param>
+        /// <exception cref="DynamicCSVException"></exception>
         public void RemoveRow(int row)
         {
+            if (row > Rows)
+                throw new DynamicCSVException($"Row value must be within row count! Attempted to remove row {row} but the CSV document only has {Rows} rows.");
             foreach (var column in _data.Keys)
                 _data[column].RemoveAt(row);
         }
 
+        /// <summary>
+        /// Gets a hashcode for the content of the CSV object
+        /// </summary>
+        /// <returns>A hash value</returns>
+        public override int GetHashCode() => HashCode.Combine(_data);
+
+        /// <summary>
+        /// Checks if a given <seealso cref="DynamicCSV"/> object is equivalent to another.
+        /// </summary>
+        /// <param name="obj"></param>
+        /// <returns>True if the object is equivalent to the current one</returns>
         public override bool Equals(object? obj)
         {
             if (obj is DynamicCSV other)

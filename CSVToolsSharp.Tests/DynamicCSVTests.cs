@@ -45,7 +45,7 @@ namespace CSVToolsSharp.Tests
         {
             // ARRANGE
             // ACT
-            var text = CSVSerialiser.DynamicSerialise(deserialised, options);
+            string text = CSVSerialiser.Serialise(deserialised, options);
 
             // ASSERT
             Assert.AreEqual(serialised, text);
@@ -57,10 +57,24 @@ namespace CSVToolsSharp.Tests
         {
             // ARRANGE
             // ACT
-            var result = CSVSerialiser.DynamicDeserialise(serialised, options);
+            DynamicCSV result = CSVSerialiser.Deserialise(serialised, options);
 
             // ASSERT
             Assert.AreEqual(deserialised, result);
+        }
+
+        [TestMethod]
+        [DynamicData(nameof(NormalData), DynamicDataSourceType.Method)]
+        public void Can_Deserialise_BackAndForth(DynamicCSV deserialised, string serialised, CSVSerialiserOptions options)
+        {
+            // ARRANGE
+            // ACT
+            DynamicCSV des = CSVSerialiser.Deserialise(serialised, options);
+            string ser = CSVSerialiser.Serialise(des, options);
+
+            // ASSERT
+            Assert.AreEqual(deserialised, des);
+            Assert.AreEqual(serialised, ser);
         }
     }
 }
