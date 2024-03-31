@@ -20,6 +20,10 @@ The package is inspired by that of [System.Text.Json](https://www.nuget.org/pack
 You have to give the properties of the CSV serialisable classes a `CSVColumn` attribute for them to be targeted for serialisation.
 You can also pass a `CSVSerialiserOptions` object to the serialisation/deserialisation for more settings.
 
+If you dont want to use this statically typed serialisation and deserialisation, there is also a `DynamicCSV` class.
+This is intended for times you dont have a class structure or just want a more "direct" way of making CSV files.
+In it you can add and remove columns, rows, cells, etc at will.
+
 ## Example
 Class to serialise/deserialize:
 ```csharp
@@ -61,4 +65,21 @@ Gives
 ```csv
 Column1      ,Column 2
 asdafaseasasd,abc
+```
+
+## Example
+An example of how to use the `DynamicCSV` object:
+```csharp
+var item = new DynamicCSV(new Dictionary<string, List<string>>());
+item.AddColumn("some-column");
+item.Insert("some-column", 0, "abc");
+item.Insert("some-column", 2, "123");
+var csvText = CSVSerialiser.Serialise(item);
+```
+Gives the CSV output:
+```csv
+some-column
+abc
+
+123
 ```
