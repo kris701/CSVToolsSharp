@@ -151,7 +151,7 @@ namespace CSVToolsSharp.Tests
         {
             if (one.Count != other.Count)
                 return false;
-            for(int i = 0; i < one.Count; i++)
+            for (int i = 0; i < one.Count; i++)
                 if (!one[i].Equals(other[i]))
                     return false;
             return true;

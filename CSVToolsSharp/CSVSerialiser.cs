@@ -1,7 +1,6 @@
 ﻿using CSVToolsSharp.Exceptions;
 using System.Reflection;
 using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CSVToolsSharp
 {
@@ -10,7 +9,67 @@ namespace CSVToolsSharp
     /// </summary>
     public static class CSVSerialiser
     {
-        #region 
+        #region Dynamic CSV
+
+        /// <summary>
+        /// Serialise a <seealso cref="DynamicCSV"/> object to CSV format
+        /// </summary>
+        /// <param name="data">A dynamic CSV object</param>
+        /// <param name="options">Settings for the serialisation</param>
+        /// <returns>A string in CSV format</returns>
+        public static string Serialise(DynamicCSV data, CSVSerialiserOptions? options = null)
+        {
+            if (options == null)
+                options = new CSVSerialiserOptions();
+
+            var sb = new StringBuilder();
+            var spacings = Enumerable.Repeat(0, data._data.Keys.Count).ToList();
+            sb.AppendLine(SerialiseLine(data._data.Keys.ToList(), spacings, options));
+            for (int i = 0; i < data.Rows; i++)
+            {
+                var line = new List<string>();
+                foreach (var key in data._data.Keys)
+                    line.Add(data._data[key][i]);
+                sb.AppendLine(SerialiseLine(line, spacings, options));
+            }
+            return sb.ToString();
+        }
+
+        /// <summary>
+        /// Deserialise a CSV string into a <seealso cref="DynamicCSV"/> object.
+        /// </summary>
+        /// <param name="text">A string in CSV format</param>
+        /// <param name="options">Settings for the deserialisation</param>
+        /// <returns>A new instance of a <seealso cref="DynamicCSV"/> object</returns>
+        public static DynamicCSV Deserialise(string text, CSVSerialiserOptions? options = null)
+        {
+            if (options == null)
+                options = new CSVSerialiserOptions();
+            text = text.Replace("\r", "");
+
+            var data = new Dictionary<string, List<string>>();
+
+            var lines = text.Split('\n').ToList();
+            lines.RemoveAll(x => x == "");
+            var headers = lines[0].Split(options.Seperator).ToList();
+            headers.RemoveAll(x => x == "");
+            foreach (var header in headers)
+                data.Add(header, new List<string>());
+
+            for (int i = 1; i < lines.Count; i++)
+            {
+                var lineData = lines[i].Split(options.Seperator).ToList();
+                lineData.RemoveAll(x => x == "");
+                for (int j = 0; j < data.Keys.Count; j++)
+                    data[data.Keys.ElementAt(j)].Add(lineData[j]);
+            }
+
+            return new DynamicCSV(data);
+        }
+
+        #endregion
+
+        #region Serialise
         /// <summary>
         /// Serialise a list of <typeparamref name="T"/> into a CSV string.
         /// </summary>
@@ -64,24 +123,33 @@ namespace CSVToolsSharp
         private static string SerializeNormal(List<dynamic> data, List<PropertyInfo> columnProps, List<int> spacings, CSVSerialiserOptions options)
         {
             var sb = new StringBuilder();
-            var headerStr = "";
-            for(int i = 0; i < columnProps.Count; i++)
+            var headers = new List<string>();
+            for (int i = 0; i < columnProps.Count; i++)
             {
                 var attr = columnProps[i].GetCustomAttribute<CSVColumnAttribute>();
                 if (attr != null)
-                    headerStr += $"{attr.Name}".PadRight(spacings[i]) + options.Seperator;
+                    headers.Add(attr.Name);
             }
-            sb.AppendLine(RemoveTrailingSeperator(headerStr, options.Seperator));
+            sb.AppendLine(SerialiseLine(headers, spacings, options));
 
             foreach (var item in data)
             {
-                var itemStr = "";
+                var lineData = new List<string>();
                 for (int i = 0; i < columnProps.Count; i++)
-                    itemStr += $"{columnProps[i].GetValue(item)}".PadRight(spacings[i]) + options.Seperator;
-                sb.AppendLine(RemoveTrailingSeperator(itemStr, options.Seperator));
+                    lineData.Add($"{columnProps[i].GetValue(item)}");
+                sb.AppendLine(SerialiseLine(lineData, spacings, options));
             }
 
             return sb.ToString();
+        }
+
+        private static string SerialiseLine(List<string> data, List<int> spacings, CSVSerialiserOptions options)
+        {
+            var headerStr = "";
+            for (int i = 0; i < data.Count; i++)
+                headerStr += $"{data[i]}".PadRight(spacings[i]) + options.Seperator;
+            headerStr = RemoveTrailingSeperator(headerStr, options.Seperator);
+            return headerStr;
         }
 
         private static string SerializePretty(List<dynamic> data, List<PropertyInfo> columnProps, CSVSerialiserOptions options)
@@ -107,7 +175,7 @@ namespace CSVToolsSharp
         }
         #endregion
 
-        #region
+        #region Deserialise
         /// <summary>
         /// Deserialise a CSV string into a list of <typeparamref name="T"/>.
         /// </summary>
