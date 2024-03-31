@@ -1,7 +1,6 @@
 ﻿using CSVToolsSharp.Exceptions;
 using System.Reflection;
 using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CSVToolsSharp
 {
@@ -57,14 +56,14 @@ namespace CSVToolsSharp
             foreach (var header in headers)
                 data.Add(header, new List<string>());
 
-            for(int i = 1; i < lines.Count; i++)
+            for (int i = 1; i < lines.Count; i++)
             {
                 var lineData = lines[i].Split(options.Seperator).ToList();
                 lineData.RemoveAll(x => x == "");
                 for (int j = 0; j < data.Keys.Count; j++)
                     data[data.Keys.ElementAt(j)].Add(lineData[j]);
             }
-            
+
             return new DynamicCSV(data);
         }
 
@@ -125,7 +124,7 @@ namespace CSVToolsSharp
         {
             var sb = new StringBuilder();
             var headers = new List<string>();
-            for(int i = 0; i < columnProps.Count; i++)
+            for (int i = 0; i < columnProps.Count; i++)
             {
                 var attr = columnProps[i].GetCustomAttribute<CSVColumnAttribute>();
                 if (attr != null)

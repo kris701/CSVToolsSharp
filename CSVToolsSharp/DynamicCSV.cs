@@ -14,12 +14,14 @@ namespace CSVToolsSharp
         /// <summary>
         /// Amount of rows in the CSV object
         /// </summary>
-        public int Rows { 
-            get {
+        public int Rows
+        {
+            get
+            {
                 if (_data.Keys.Count == 0)
                     return 0;
                 return _data.Keys.Max(x => _data[x].Count);
-            } 
+            }
         }
         internal Dictionary<string, List<string>> _data;
 
