@@ -1,12 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection.Emit;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using System.Dynamic;
-using CSVToolsSharp.Exceptions;
+﻿using CSVToolsSharp.Exceptions;
 
 namespace CSVToolsSharp
 {
@@ -22,7 +14,13 @@ namespace CSVToolsSharp
         /// <summary>
         /// Amount of rows in the CSV object
         /// </summary>
-        public int Rows => _data.Keys.Max(x => _data[x].Count);
+        public int Rows { 
+            get {
+                if (_data.Keys.Count == 0)
+                    return 0;
+                return _data.Keys.Max(x => _data[x].Count);
+            } 
+        }
         internal Dictionary<string, List<string>> _data;
 
         /// <summary>
@@ -32,13 +30,13 @@ namespace CSVToolsSharp
         public DynamicCSV(Dictionary<string, List<string>> data)
         {
             _data = data;
-            BufferRows();
+            BufferRows(Rows);
         }
 
-        private void BufferRows()
+        private void BufferRows(int toRow)
         {
             foreach (var key in _data.Keys)
-                while (_data[key].Count < Rows)
+                while (_data[key].Count < toRow)
                     _data[key].Add("");
         }
 
@@ -59,6 +57,31 @@ namespace CSVToolsSharp
         }
 
         /// <summary>
+        /// Gets all the current columns in the CSV object
+        /// </summary>
+        /// <returns>A list of column names</returns>
+        public List<string> GetColumns() => _data.Keys.ToList();
+
+        /// <summary>
+        /// Gets all the data from a single row in the CSV object
+        /// </summary>
+        /// <param name="row">Index of the row</param>
+        /// <returns>A list of data for the given row</returns>
+        /// <exception cref="DynamicCSVException"></exception>
+        public List<string> GetRow(int row)
+        {
+            if (row > Rows)
+                throw new DynamicCSVException($"Row value must be within row count! Attempted to get data fror row {row} but the CSV document only has {Rows} rows.");
+
+            var data = new List<string>();
+
+            foreach (var key in _data.Keys)
+                data.Add(_data[key][row]);
+
+            return data;
+        }
+
+        /// <summary>
         /// Adds an empty column to the CSV object
         /// </summary>
         /// <param name="column">Name of the column</param>
@@ -73,6 +96,15 @@ namespace CSVToolsSharp
         }
 
         /// <summary>
+        /// Adds an empty row to the end of the CSV object
+        /// </summary>
+        public void AddRow()
+        {
+            foreach (var key in _data.Keys)
+                _data[key].Add("");
+        }
+
+        /// <summary>
         /// Inserts a new piece of data into the CSV object
         /// </summary>
         /// <param name="column">Column to insert data into</param>
@@ -83,7 +115,7 @@ namespace CSVToolsSharp
             if (!_data.ContainsKey(column))
                 AddColumn(column);
             if (row >= Rows)
-                BufferRows();
+                BufferRows(row + 1);
             _data[column][row] = data;
         }
 
